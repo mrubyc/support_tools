@@ -180,6 +180,26 @@ def to_float64( s )
   return (sign == 1) ? -x : x
 end
 
+##
+# hexdump
+#
+def hd( adrs, data, size )
+  n = 0
+  while n < size
+    hbuf = sprintf("%04X  ", n + adrs )
+    abuf = ""
+    16.times {|i|
+      hbuf << sprintf("%02x ", data.getbyte(n))
+      hbuf << " " if i == 7
+      abuf << (((" " <= data[n]) && (data[n] <= "~")) ? data[n] : ".")
+      break if (n += 1) >= size
+    }
+
+    printf("%-55s %s\n", hbuf, abuf )
+    adrs += 16
+  end
+end
+
 
 ##
 # verbose function
@@ -219,7 +239,7 @@ end
 ##
 # IREPセクションの解析
 #
-def read_section_irep( file )
+def read_section_irep( file, size )
   ver = file.read(4)
   print "ver:#{ver} ===\n"
   read_irep_record( file )
@@ -345,20 +365,30 @@ end
 ##
 # DEBUG セクションの解析
 #
-def read_section_debug( file )
+def read_section_debug( file, size )
   puts "==="
-  puts "(skip)"
+  if $verbose
+    hd( 0, file.read( size-8 ), size-8 )
+  else
+    puts "(skip)"
+  end
   puts
 end
+
 
 ##
 # LVAR セクションの解析
 #
-def read_section_lv( file )
+def read_section_lvar( file, size )
   puts "==="
-  puts "(skip)"
+  if $verbose
+    hd( 0, file.read( size-8 ), size-8 )
+  else
+    puts "(skip)"
+  end
   puts
 end
+
 
 
 ##
@@ -528,14 +558,16 @@ loop {
 
   case id
   when "IREP"
-    read_section_irep( file )
-  when "DEBUG"
-    read_section_debug( file )
+    read_section_irep( file, size )
+  when "DBG\x00"
+    read_section_debug( file, size )
   when "LVAR"
-    read_section_lv( file )
+    read_section_lvar( file, size )
   when "END\x00"
     puts "==="
     break;
+  else
+    print "===\n(skip)\n\n"
   end
 
   file.seek( pos + size )
