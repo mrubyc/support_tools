@@ -554,7 +554,7 @@ loop {
   pos = file.pos()
   id = file.read(4)
   size = file.read(4).to_uint32b()
-  print "==== #{id} SECTION size:#{size} ($#{size.to_s(16)}) "
+  print "==== #{id.strip} SECTION size:#{size} ($#{size.to_s(16)}) "
 
   case id
   when "IREP"
