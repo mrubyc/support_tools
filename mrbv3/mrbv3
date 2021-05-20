@@ -245,7 +245,7 @@ def read_section_irep( file, size )
   read_irep_record( file )
 end
 
-def read_irep_record( file, nest = 0, lvs = "0" )
+def read_irep_record( file, nest = 0, lvs = "" )
   ret = read_irep_record_1( file, nest, lvs )
   ret[:rlen].times {|i|
     read_irep_record( file, nest + 1, "#{lvs}-#{i}" )
@@ -312,8 +312,8 @@ def read_irep_record_1( file, nest, lvs )
   #
   # display
   #
-  print "> "*nest  if $irep_indent
-  print "[IREP #{lvs}] size:#{rsize} nlocals:#{nlocals} nregs:#{nregs} reps:#{rlen} clen:#{clen} ilen:#{ilen}\n"
+  print "> " * nest  if $irep_indent
+  print "[IREP#{lvs}] size:#{rsize} nlocals:#{nlocals} nregs:#{nregs} reps:#{rlen} clen:#{clen} ilen:#{ilen}\n"
 
   if $disassemble
     disassemble( codes, pools, syms )
