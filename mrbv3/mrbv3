@@ -196,7 +196,6 @@ def hd( adrs, data, size )
     }
 
     printf("%-55s %s\n", hbuf, abuf )
-    adrs += 16
   end
 end
 
