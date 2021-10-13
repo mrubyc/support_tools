@@ -323,7 +323,7 @@ def read_irep_record_1( file, nest, lvs )
     print "[CATCH] clen:#{clen}\n"
     catch_handlers.each_with_index {|ch,i|
       vp "  "*nest  if $irep_indent
-      vp "  %d: type=%d(%s)   begin=$%04X end=$%04X target=$%04X\n",
+      vp "  %d: type=%d(%s)   begin=%03d end=%03d target=%03d\n",
          i, ch[:ch_type],
          ["rescue","ensure"][ch[:ch_type]],    # irep.h mrb_catch_type
          ch[:ch_begin], ch[:ch_end], ch[:ch_target]
@@ -444,14 +444,14 @@ def disassemble( codes, pools, syms )
     end
 
     case op[1]
-    when "OP_JMP"
+    when "OP_JMP", "OP_JMPUW"
       a -= 0x10000  if a > 0x7fff
-    when "OP_JMPIF", "OP_JMPNOT", "OP_JMPNIL"
+    when "OP_JMPIF", "OP_JMPNOT", "OP_JMPNIL", "OP_LOADI16"
       b -= 0x10000  if b > 0x7fff
     end
 
-#    printf(" %04x %02x %-13s %-15s %s\n", addr, code, op[1], [a,b,c].inspect, eval('"' + op[4] + '"'))
-    printf(" %04x %02x %-13s %s\n", addr, code, op[1], eval('"' + op[4] + '"'))
+#    printf(" %03d %02x %-13s %-15s %s\n", addr, code, op[1], [a,b,c].inspect, eval('"' + op[4] + '"'))
+    printf(" %03d %02x %-13s %s\n", addr, code, op[1], eval('"' + op[4] + '"'))
   end
 end
 
@@ -475,13 +475,13 @@ def create_bytecode_table()
       "[#{$1}=\#{#{$1}}#{$2}"
     }
     sem.gsub!(/Syms\(([abc])\)/) {                              # Syms[a]
-      "Syms(#{$1}=\#{#{$1}})=:\#{syms[#{$1}][:v]} "
+      "Syms(#{$1}=\#{#{$1}})=:\#{syms[#{$1}][:v]}"
     }
     sem.gsub!(/Pool\(([abc])\)/) {                              # Pool[a]
-      "Pool(#{$1}=\#{#{$1}})=\#{pools[#{$1}][:v].inspect} "
+      "Pool(#{$1}=\#{#{$1}})=\#{pools[#{$1}][:v].inspect}"
     }
     sem.gsub!(/Lit\(([abc])\)/) {                               # Lit[a]
-      "Lit(#{$1}=\#{#{$1}})=\#{pools[#{$1}][:v].inspect} "
+      "Lit(#{$1}=\#{#{$1}})=\#{pools[#{$1}][:v].inspect}"
     }
     sem.gsub!(/uv(set|get)\(b,c/) {                             # uvset/uvget
       "uv#{$1}(b=\#{b},c=\#{c}"
@@ -493,12 +493,12 @@ def create_bytecode_table()
       "int(#{$1}#{$2}=#{$1}\#{#{$2}})"
     }
     sem.gsub!(/pc\+=([ab])/) {                                  # pc+=a
-      "pc+=#{$1}=\#{#{$1}} =\#{sprintf('%04x', idx+#{$1})}"
+      "pc += #{$1}=\#{#{$1}} = \#{sprintf('%03d', idx+#{$1})}"
     }
-    sem.gsub!('(b<<16)+c', '(b=#{b}<<16)+c=#{c} =#{(b<<16)+c}') # (b<<16)+c
+    sem.gsub!('(b<<16)+c', '(b=#{b}<<16)+c=#{c} =#{(b<<16)+c - ((b & 0x8000) << 17)}') # (b<<16)+c
 
     sem.gsub!("unwind_and_jump_to(a)",                          # OP_JMPUW
-      "unwind_and_jump_to(a=\#{a}) =\#{sprintf('%04x', idx+a)}")
+      "unwind_and_jump_to(a=\#{a}) = \#{sprintf('%03d', idx+a)}")
 
     if sem.include?("(16=m5:r1:m5:d1:lv4)")                     # OP_ARGARY
       sem << "\t(m=\#{b.bit(15,5)} r=\#{b.bit(10)} m=\#{b.bit(9,5)} d=\#{b.bit(4)} lv=\#{b.bit(3,4)})"
@@ -564,7 +564,7 @@ loop {
     read_section_lvar( file, size )
   when "END\x00"
     puts "==="
-    break;
+    break
   else
     print "===\n(skip)\n\n"
   end
