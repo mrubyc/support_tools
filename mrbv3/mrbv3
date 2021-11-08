@@ -321,13 +321,15 @@ def read_irep_record_1( file, nest, lvs )
   if clen > 0
     print "  "*nest  if $irep_indent
     print "[CATCH] clen:#{clen}\n"
-    catch_handlers.each_with_index {|ch,i|
-      vp "  "*nest  if $irep_indent
-      vp "  %d: type=%d(%s)   begin=%03d end=%03d target=%03d\n",
-         i, ch[:ch_type],
-         ["rescue","ensure"][ch[:ch_type]],    # irep.h mrb_catch_type
-         ch[:ch_begin], ch[:ch_end], ch[:ch_target]
-    }
+    if $disassemble
+      catch_handlers.each_with_index {|ch,i|
+        printf "  "*nest  if $irep_indent
+        printf "  %d: type=%d(%s)   begin=%03d end=%03d target=%03d\n",
+               i, ch[:ch_type],
+               ["rescue","ensure"][ch[:ch_type]],    # irep.h mrb_catch_type
+               ch[:ch_begin], ch[:ch_end], ch[:ch_target]
+      }
+    end
   end
 
   print "  "*nest  if $irep_indent
