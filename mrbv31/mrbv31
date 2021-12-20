@@ -258,7 +258,7 @@ def read_irep_record_1( file, nest, lvs )
   nregs = file.read(2).to_uint16b()
   rlen = file.read(2).to_uint16b()  # = reps
   clen = file.read(2).to_uint16b()
-  ilen = file.read(2).to_uint16b()
+  ilen = file.read(4).to_uint32b()
 
   # op codes
   codes = file.read(ilen)
