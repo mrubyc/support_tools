@@ -391,6 +391,13 @@ def read_section_lvar( file, size )
 end
 
 
+OP_EXT_PATTERN = {
+  "B"  => %w(S),
+  "BB" => %w(SB BS SS),
+  "BBB"=> %w(SBB BSB SSB),
+  "BS" => %w(SS SS SS),
+  "BSS"=> %w(SSS),
+}
 
 ##
 # 逆アセンブル表示
@@ -400,6 +407,7 @@ def disassemble( codes, pools, syms )
   # in $bytecode
   #  [code, "op_code", operands, semantics, sem_for_eval]
   idx = 0
+  op_ext = nil
   while idx < codes.size
     addr = idx
     code = codes[idx].to_uint8()
@@ -410,8 +418,29 @@ def disassemble( codes, pools, syms )
       return
     end
 
+    operand_pattern = op[2]
+    if op_ext
+      operand_pattern = OP_EXT_PATTERN[ operand_pattern ][ op_ext-1 ]
+      if !operand_pattern
+        puts "Illegal bytecode with op_ext."
+        return
+      end
+      op_ext = nil
+    end
+
+    # check OP_EXT
+    case op[1]
+    when "OP_EXT1"; op_ext = 1
+    when "OP_EXT2"; op_ext = 2
+    when "OP_EXT3"; op_ext = 3
+    end
+    if op_ext
+      printf(" %03d %02x %-13s %s\n", addr, code, op[1], eval('"' + op[4] + '"'))
+      next
+    end
+
     a = b = c = nil
-    case op[2]
+    case operand_pattern
     when "Z"
       # nothing
     when "B"
@@ -441,8 +470,38 @@ def disassemble( codes, pools, syms )
     when "W"
       a = codes.to_uint24b(idx)
       idx += 3
+
+    # with op_ext patterns
+    when "SB"
+      a = codes.to_uint16b(idx)
+      b = codes.to_uint8(idx+2)
+      idx += 3
+    when "SS"
+      a = codes.to_uint16b(idx)
+      b = codes.to_uint16b(idx+2)
+      idx += 4
+    when "SBB"
+      a = codes.to_uint16b(idx)
+      b = codes.to_uint8(idx+2)
+      c = codes.to_uint8(idx+3)
+      idx += 4
+    when "BSB"
+      a = codes.to_uint8(idx)
+      b = codes.to_uint16b(idx+1)
+      c = codes.to_uint8(idx+3)
+      idx += 4
+    when "SSB"
+      a = codes.to_uint16b(idx)
+      b = codes.to_uint16b(idx+2)
+      c = codes.to_uint8(idx+4)
+      idx += 5
+    when "SSS"
+      a = codes.to_uint16b(idx)
+      b = codes.to_uint16b(idx+2)
+      c = codes.to_uint16b(idx+4)
+      idx += 6
     else
-      raise
+      raise "Illegal operand pattern #{operand_pattern.inspect}"
     end
 
     case op[1]
@@ -456,8 +515,7 @@ def disassemble( codes, pools, syms )
     end
 
 #    printf(" %03d %02x %-13s %-15s %s\n", addr, code, op[1], [a,b,c].inspect, ('"' + op[4] + '"'))
-    printf(" %03d %02x %-13s %-15s %s\n", addr, code, op[1], [a,b,c].inspect, eval('"' + op[4] + '"'))
-#    printf(" %03d %02x %-13s %s\n", addr, code, op[1], eval('"' + op[4] + '"'))
+    printf(" %03d %02x %-13s %s\n", addr, code, op[1], eval('"' + op[4] + '"'))
   end
 end
 
