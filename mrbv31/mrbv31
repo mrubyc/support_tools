@@ -11,6 +11,7 @@
 #  -v   Verbose
 #  -i   with indent
 #  -d   Disassemble
+#  -r   with a,b,c parameter values.
 #
 
 require "optparse"
@@ -514,8 +515,14 @@ def disassemble( codes, pools, syms )
       k = (c & 0xf0) >> 4
     end
 
-#    printf(" %03d %02x %-13s %-15s %s\n", addr, code, op[1], [a,b,c].inspect, ('"' + op[4] + '"'))
-    printf(" %03d %02x %-13s %s\n", addr, code, op[1], eval('"' + op[4] + '"'))
+    regs = ""
+    if $d_register
+      regs << (a ? sprintf("[%2d,", a) : "[ -,")
+      regs << (b ? sprintf("%2d,", b) : " -,")
+      regs << (c ? sprintf("%2d] ", c) : " -] ")
+    end
+
+    printf(" %03d %02x %-13s %s%s\n", addr, code, op[1], regs, eval('"' + op[4] + '"'))
   end
 end
 
@@ -535,6 +542,11 @@ def create_bytecode_table()
     # semantics文字列を、evalしてoperand等の値が表示できるように書き換える
     # DATAで読むことができるsemanticsの書き方に依存しているので改変時注意
     sem = $3.strip
+    if /S?SENDB?/ =~ $1                                         # OP_SEND...
+      sem.gsub!(" (c=n|k<<4)", "")
+      sem << ' [n=#{n},k=#{k}]'
+    end
+
     sem.gsub!(/Syms\[([abc])\]/) {                              # Syms[a]
       "Syms[#{$1}=\#{#{$1}}]=:\#{syms[#{$1}][:v]}"
     }
@@ -562,18 +574,15 @@ def create_bytecode_table()
     sem.gsub!("(b<<16)+c") {                                    # OP_LOADI32 (b<<16)+c
       '(b=#{b}<<16)+c=#{c} =#{(b<<16)+c - ((b & 0x8000) << 17)}'
     }
-    sem.gsub!("unwind_and_jump_to(a)",                          # OP_JMPUW
-      "unwind_and_jump_to(a=\#{a}) = \#{sprintf('%03d', idx+a)}")
-
-    if sem.include?("(16=m5:r1:m5:d1:lv4)")                     # OP_ARGARY
-      sem << "\t(m=\#{b.bit(15,5)} r=\#{b.bit(10)} m=\#{b.bit(9,5)} d=\#{b.bit(4)} lv=\#{b.bit(3,4)})"
-
-    elsif sem.include?("(23=m5:o5:r1:m5:k5:d1:b1)")             # OP_ENTER
-      sem << "\t(m=\#{a.bit(22,5)} o=\#{a.bit(17,5)} r=\#{a.bit(12)} m=\#{a.bit(11,5)} k=\#{a.bit(6,5)} d=\#{a.bit(1)} b=\#{a.bit(0)})"
-
-    elsif sem.include?("(16=m5:r1:m5:d1:lv4)")                  # OP_BLKPUSH
-      sem << "\t(m=\#{b.bit(15,5)} r=\#{b.bit(10)} m=\#{b.bit(9,5)} d=\#{b.bit(4)} lv=\#{b.bit(3,4)})"
-    end
+    sem.gsub!("unwind_and_jump_to(a)") {                        # OP_JMPUW
+      'unwind_and_jump_to(a=#{a}) = #{sprintf("%03d", idx+a)}'
+    }
+    sem.gsub!("(16=m5:r1:m5:d1:lv4)") {                         # OP_ARGARY, OP_BLKPUSH
+      '(m=#{b.bit(15,5)} r=#{b.bit(10)} m=#{b.bit(9,5)} d=#{b.bit(4)} lv=#{b.bit(3,4)})'
+    }
+    sem.gsub!("(23=m5:o5:r1:m5:k5:d1:b1)") {                    # OP_ENTER
+      '(m=#{a.bit(22,5)} o=#{a.bit(17,5)} r=#{a.bit(12)} m=#{a.bit(11,5)} k=#{a.bit(6,5)} d=#{a.bit(1)} b=#{a.bit(0)})'
+    }
 
     bytecode << (op << sem.freeze)
   }
@@ -590,10 +599,11 @@ end
 $bytecode = create_bytecode_table()
 
 # parse option
-params = ARGV.getopts("vid")
+params = ARGV.getopts("vidr")
 $verbose = params["v"]
 $irep_indent = params["i"]
 $disassemble = params["d"]
+$d_register = params["r"]
 
 if !ARGV[0]
   puts "Usage: mrbv [options] [.rb/.mrb filename]"
@@ -606,7 +616,9 @@ case File.extname(ARGV[0])
 when ".mrb"
   file = open( ARGV[0] )
 when ".rb"
-  system("mrbc #{ARGV[0]}")
+  if !system("mrbc #{ARGV[0]}")
+    exit 1
+  end
   file = open( File.basename(ARGV[0], ".rb") + ".mrb" )
 else
   puts "Argument error."
