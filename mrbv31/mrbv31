@@ -316,7 +316,7 @@ def read_irep_record_1( file, nest, lvs )
   print "[IREP#{lvs}] size:#{rsize} nlocals:#{nlocals} nregs:#{nregs} reps:#{rlen} clen:#{clen} ilen:#{ilen}\n"
 
   if $disassemble
-    disassemble( codes, pools, syms )
+    disassemble( codes, catch_handlers, pools, syms )
   end
 
   if clen > 0
@@ -403,7 +403,7 @@ OP_EXT_PATTERN = {
 ##
 # 逆アセンブル表示
 #
-def disassemble( codes, pools, syms )
+def disassemble( codes, catch_handlers, pools, syms )
   #(note)
   # in $bytecode
   #  [code, "op_code", operands, semantics, sem_for_eval]
@@ -522,6 +522,10 @@ def disassemble( codes, pools, syms )
       regs << (c ? sprintf("%2d] ", c) : " -] ")
     end
 
+    catch_handlers.each {|ch|
+      next if ch[:ch_target] != addr
+      printf("<%s>\n", ch[:ch_type] == 0 ? "rescue" : "ensure" )
+    }
     printf(" %03d %02x %-13s %s%s\n", addr, code, op[1], regs, eval('"' + op[4] + '"'))
   end
 end
@@ -561,6 +565,9 @@ def create_bytecode_table()
     }
     sem.gsub!(/R\[([abcn\+\-\*\d]+)\]/) {                       # R[a], R[a+n+1]
       "R[#{$1}=\#{#{$1}}]"
+    }
+    sem.gsub!(/\[c\]/) {
+      "[c=\#{c}]"
     }
     sem.gsub!(/uv(set|get)\(b,c/) {                             # uvset/uvget
       "uv#{$1}(b=\#{b},c=\#{c}"
