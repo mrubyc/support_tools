@@ -1,10 +1,10 @@
-# mrbv31
+# mrbv32
 
-mruby bytecode file (.mrb) viewer and disassembler for IREP version 3.1
+mruby bytecode file (.mrb) viewer and disassembler for mruby version 3.2
 
 ## Usage
 ```
-mrbv31 [opt] .rb or .mrb file
+mrbv32 [opt] .rb or .mrb file
 ```
 
 Option
@@ -24,7 +24,7 @@ puts "Hello", "Ruby"
 
 #### Results
 ```
-$mrbv31 sample.rb
+$mrbv32 sample.rb
 ==== RITE FILE HEADER ====
 Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
@@ -38,7 +38,7 @@ Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
 #### -v option
 ```
-$mrbv31 -v sample.rb
+$mrbv32 -v sample.rb
 ==== RITE FILE HEADER ====
 Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
@@ -55,7 +55,7 @@ Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
 #### -d option
 ```
-$mrbv31 -d sample.rb
+$mrbv32 -d sample.rb
 ==== RITE FILE HEADER ====
 Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
@@ -74,7 +74,7 @@ Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
 #### -dr option
 ```
-$mrbv31 -dr sample.rb
+$mrbv32 -dr sample.rb
 ==== RITE FILE HEADER ====
 Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
@@ -122,7 +122,7 @@ end
 
 #### Result -vi option
 ```
-$mrbv31 -vi sample.rb
+$mrbv32 -vi sample.rb
 ==== RITE FILE HEADER ====
 Ident/Ver:RITE0300  Size:521 ($209)  Compiler:0000
 
