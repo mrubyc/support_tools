@@ -205,7 +205,7 @@ end
 # verbose function
 #
 def vp(*args)
-  if $verbose
+  if $opt[:verbose]
     printf *args
   end
 end
@@ -312,19 +312,19 @@ def read_irep_record_1( file, nest, lvs )
   #
   # display
   #
-  print "> " * nest  if $irep_indent
+  print "> " * nest  if $opt[:indent_irep]
   print "[IREP#{lvs}] size:#{rsize} nlocals:#{nlocals} nregs:#{nregs} reps:#{rlen} clen:#{clen} ilen:#{ilen}\n"
 
-  if $disassemble
+  if $opt[:disassemble]
     disassemble( codes, catch_handlers, pools, syms )
   end
 
   if clen > 0
-    print "  "*nest  if $irep_indent
+    print "  "*nest  if $opt[:indent_irep]
     print "[CATCH] clen:#{clen}\n"
-    if $disassemble
+    if $opt[:disassemble]
       catch_handlers.each_with_index {|ch,i|
-        printf "  "*nest  if $irep_indent
+        printf "  "*nest  if $opt[:indent_irep]
         printf "  %d: type=%d(%s)   begin=%03d end=%03d target=%03d\n",
                i, ch[:ch_type],
                ["rescue","ensure"][ch[:ch_type]],    # irep.h mrb_catch_type
@@ -333,10 +333,10 @@ def read_irep_record_1( file, nest, lvs )
     end
   end
 
-  print "  "*nest  if $irep_indent
+  print "  "*nest  if $opt[:indent_irep]
   print "[POOL] plen:#{plen}\n"
   pools.each_with_index {|pd, i|
-    vp "  "*nest  if $irep_indent
+    vp "  "*nest  if $opt[:indent_irep]
     case pd[:tt]
     when 1,3    # IREP_TT_INT*
       vp "  %d: type=%d val=%d\n", i, pd[:tt], pd[:v]
@@ -350,10 +350,10 @@ def read_irep_record_1( file, nest, lvs )
     end
   }
 
-  print "  "*nest  if $irep_indent
+  print "  "*nest  if $opt[:indent_irep]
   print "[SYMS] slen:#{slen}\n"
   syms.each_with_index {|sym, i|
-    vp "  "*nest  if $irep_indent
+    vp "  "*nest  if $opt[:indent_irep]
     vp "  %d: len=%d %s\n", i, sym[:n], sym[:v].inspect
     puts "No zero terminate found." if sym[:t] != "\x00"
   }
@@ -369,7 +369,7 @@ end
 #
 def read_section_debug( file, size )
   puts "==="
-  if $verbose
+  if $opt[:verbose]
     hd( 0, file.read( size-8 ), size-8 )
   else
     puts "(skip)"
@@ -383,7 +383,7 @@ end
 #
 def read_section_lvar( file, size )
   puts "==="
-  if $verbose
+  if $opt[:verbose]
     hd( 0, file.read( size-8 ), size-8 )
   else
     puts "(skip)"
@@ -515,18 +515,21 @@ def disassemble( codes, catch_handlers, pools, syms )
       k = (c & 0xf0) >> 4
     end
 
-    regs = ""
-    if $d_register
-      regs << (a ? sprintf("[%2d,", a) : "[ -,")
-      regs << (b ? sprintf("%2d,", b) : " -,")
-      regs << (c ? sprintf("%2d] ", c) : " -] ")
+    op1 = op[1].dup
+    if $opt[:disp_reg]
+      op1 << "("
+      op1 << sprintf("%2d", a)  if a
+      op1 << sprintf(",%2d", b)  if b
+      op1 << sprintf(",%2d", c)  if c
+      op1 << ")"
     end
 
     catch_handlers.each {|ch|
       next if ch[:ch_target] != addr
       printf("<%s>\n", ch[:ch_type] == 0 ? "rescue" : "ensure" )
     }
-    printf(" %03d %02x %-13s %s%s\n", addr, code, op[1], regs, eval('"' + op[4] + '"'))
+
+    printf(" %03d %02x %-18s %s\n", addr, code, op1, eval('"' + op[4] + '"'))
   end
 end
 
@@ -606,17 +609,26 @@ end
 $bytecode = create_bytecode_table()
 
 # parse option
-params = ARGV.getopts("vidr")
-$verbose = params["v"]
-$irep_indent = params["i"]
-$disassemble = params["d"]
-$d_register = params["r"]
+$opt = {:verbose=>false, :indent_irep=>false, :disassemble=>false, :disp_reg=>false}
+begin
+  opt = OptionParser.new
+  opt.banner += " .rb/.mrb file"
+  opt.on("-v", "verbose") {|v| $opt[:verbose] = v}
+  opt.on("-i", "indent irep") {|v| $opt[:indent_irep] = v}
+  opt.on("-d", "disassemble") {|v| $opt[:disassemble] = v}
+  opt.on("-r", "with display registor variables") {|v| $opt[:disp_reg] = v}
+  opt.parse!(ARGV)
 
-if !ARGV[0]
-  puts "Usage: mrbv [options] [.rb/.mrb filename]"
-  puts "(note) assumption big endian."
-  exit 1
+  if !ARGV[0]
+    puts opt.help
+    exit 1
+  end
+
+rescue OptionParser::MissingArgument =>ex
+  STDERR.puts ex.message
+  return nil
 end
+
 
 # open the mrb file.
 case File.extname(ARGV[0])
@@ -709,7 +721,7 @@ OPCODE(SSEND,      BBB)      /* R[a] = self.send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n
 OPCODE(SSENDB,     BBB)      /* R[a] = self.send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..,&R[a+n+2k+1]) */
 OPCODE(SEND,       BBB)      /* R[a] = R[a].send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..) (c=n|k<<4) */
 OPCODE(SENDB,      BBB)      /* R[a] = R[a].send(Syms[b],R[a+1]..,R[a+n+1]:R[a+n+2]..,&R[a+n+2k+1]) */
-OPCODE(CALL,       Z)        /* R[0] = self.call(frame.argc, frame.argv) */
+OPCODE(CALL,       Z)        /* self.call(*, **, &) (But overlay the current call frame; tailcall) */
 OPCODE(SUPER,      BB)       /* R[a] = super(R[a+1],... ,R[a+b+1]) */
 OPCODE(ARGARY,     BS)       /* R[a] = argument array (16=m5:r1:m5:d1:lv4) */
 OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
