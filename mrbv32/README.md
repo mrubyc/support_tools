@@ -61,11 +61,11 @@ Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
 ==== IREP SECTION size:69 ($45) ver:0300 ===
 [IREP] size:57 nlocals:1 nregs:5 reps:0 clen:0 ilen:13
- 000 51 OP_STRING     R[a=2] = str_dup(Pool[b=0]="Hello")
- 003 51 OP_STRING     R[a=3] = str_dup(Pool[b=1]="Ruby")
- 006 2d OP_SSEND      R[a=1] = self.send(Syms[b=0]=:puts,R[a+1=2]..,R[a+n+1=4]:R[a+n+2=5]..) [n=2,k=0]
- 010 38 OP_RETURN     return R[a=1] (normal)
- 012 69 OP_STOP       stop VM
+ 000 51 OP_STRING          R[a=2] = str_dup(Pool[b=0]="Hello")
+ 003 51 OP_STRING          R[a=3] = str_dup(Pool[b=1]="Ruby")
+ 006 2d OP_SSEND           R[a=1] = self.send(Syms[b=0]=:puts,R[a+1=2]..,R[a+n+1=4]:R[a+n+2=5]..) [n=2,k=0]
+ 010 38 OP_RETURN          return R[a=1] (normal)
+ 012 69 OP_STOP            stop VM
 [POOL] plen:2
 [SYMS] slen:1
 
@@ -80,11 +80,11 @@ Ident/Ver:RITE0300  Size:97 ($61)  Compiler:0000
 
 ==== IREP SECTION size:69 ($45) ver:0300 ===
 [IREP] size:57 nlocals:1 nregs:5 reps:0 clen:0 ilen:13
- 000 51 OP_STRING     [ 2, 0, -] R[a=2] = str_dup(Pool[b=0]="Hello")
- 003 51 OP_STRING     [ 3, 1, -] R[a=3] = str_dup(Pool[b=1]="Ruby")
- 006 2d OP_SSEND      [ 1, 0, 2] R[a=1] = self.send(Syms[b=0]=:puts,R[a+1=2]..,R[a+n+1=4]:R[a+n+2=5]..) [n=2,k=0]
- 010 38 OP_RETURN     [ 1, -, -] return R[a=1] (normal)
- 012 69 OP_STOP       [ -, -, -] stop VM
+ 000 51 OP_STRING( 2, 0)   R[a=2] = str_dup(Pool[b=0]="Hello")
+ 003 51 OP_STRING( 3, 1)   R[a=3] = str_dup(Pool[b=1]="Ruby")
+ 006 2d OP_SSEND( 1, 0, 2) R[a=1] = self.send(Syms[b=0]=:puts,R[a+1=2]..,R[a+n+1=4]:R[a+n+2=5]..) [n=2,k=0]
+ 010 38 OP_RETURN( 1)      return R[a=1] (normal)
+ 012 69 OP_STOP()          stop VM
 [POOL] plen:2
 [SYMS] slen:1
 
